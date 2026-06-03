@@ -44,7 +44,7 @@
             display: none;
             opacity: 0;
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             padding: 20px;
             transition: opacity 0.8s ease;
         }
@@ -59,100 +59,92 @@
         h1 {
             color: #ff4d6d;
             font-size: 1.8rem;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
         p {
+            line-height: 1.6;
             color: #b0b0b0;
-            font-size: 1rem;
-            margin-bottom: 25px;
+            font-size: 1.1rem;
         }
 
-        /* 3. CAJA SORPRESA INTERACTIVA (REEMPLAZA AL RASPADITO) */
-        .box-container {
-            width: 100%;
-            height: 260px;
-            margin: 20px auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* 3. ZONA DE RASPADITO */
+        .canvas-container {
             position: relative;
-        }
-        #surprise-box {
-            width: 140px;
-            height: 140px;
-            background-color: #ff4d6d;
+            width: 100%;
+            max-width: 300px;
+            height: 400px;
+            margin: 30px auto;
             border-radius: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 8px 20px rgba(255, 77, 109, 0.4);
-            transition: transform 0.2s ease, opacity 0.5s ease;
-            animation: pulse 1.5s infinite;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            border: 2px solid #ffccd5;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        #surprise-box:active {
-            transform: scale(0.9);
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        /* IMAGEN OCULTA */
-        .dibujo-fijo {
-            max-width: 100%;
-            max-height: 260px;
+        .dibujo-fondo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            border-radius: 12px;
-            display: none;
-            opacity: 0;
-            transition: opacity 0.6s ease;
+            background-color: #1a1a1a;
+            z-index: 1;
+            pointer-events: none;
+        }
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: pointer;
         }
 
         /* 4. SECCIÓN PREGUNTA Y BOTONES */
         #proposal-section {
-            visibility: hidden;
+            display: none;
             opacity: 0;
             transition: opacity 0.5s ease;
-            margin-top: 25px;
+            margin-top: 20px;
         }
         #proposal-section h2 {
-            font-size: 1.15rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         .buttons-wrapper {
-            margin-top: 25px;
+            margin-top: 30px;
             position: relative;
+            height: 120px;
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 20px;
-            height: 100px; /* Contenedor controlado */
         }
         .btn {
             padding: 12px 25px;
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: bold;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.15s ease-out;
         }
         #btn-si {
             background-color: #ff4d6d;
             color: white;
             z-index: 10;
+            white-space: normal;
+            max-width: 260px;
         }
         #btn-no {
             background-color: #444;
             color: #aaa;
+            position: relative;
             z-index: 5;
-            /* Usamos transformaciones CSS en lugar de top/left para evitar saltos locos en móviles */
-            transition: transform 0.15s ease-out; 
         }
     </style>
 </head>
@@ -165,11 +157,11 @@
     <div id="main-content">
         <div class="container">
             <h1>Hola, tengo una sorpresa para ti</h1>
-            <p id="instruction-text">Toca el regalo para abrirlo</p>
+            <p>Me costó un poco hacerlo, espero que te guste</p>
             
-            <div class="box-container">
-                <div id="surprise-box">¡Tócame!</div>
-                <img class="dibujo-fijo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
+            <div class="canvas-container">
+                <img class="dibujo-fondo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
+                <canvas id="scratch-canvas" width="300" height="400"></canvas>
             </div>
 
             <div id="proposal-section">
@@ -196,40 +188,97 @@
                     mainContent.style.display = 'block';
                     setTimeout(() => {
                         mainContent.style.opacity = '1';
+                        initScratch();
                     }, 50);
                 }, 500);
             }
         });
 
-        // --- 2. REVELAR REGALO ---
-        const surpriseBox = document.getElementById('surprise-box');
-        const dibujo = document.getElementById('dibujo');
-        const instructionText = document.getElementById('instruction-text');
-        const proposalSection = document.getElementById('proposal-section');
-
-        // Funciona perfectamente con clic o toque sin importar el dispositivo
-        function abrirRegalo() {
-            surpriseBox.style.display = 'none';
-            instructionText.innerText = "¡Sorpresa!";
+        // --- 2. RASPADITO SEPARADO POR PLATAFORMA ---
+        function initScratch() {
+            const canvas = document.getElementById('scratch-canvas');
+            if (!canvas) return;
             
-            dibujo.style.display = 'block';
-            setTimeout(() => {
-                dibujo.style.opacity = '1';
-                
-                // Mostrar propuesta
-                proposalSection.style.visibility = 'visible';
-                proposalSection.style.opacity = '1';
-                initBotonNo();
-            }, 50);
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+
+            // Capa gris del raspadito
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Texto guía
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 18px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('raspameee', canvas.width / 2, canvas.height / 2);
+
+            function calcularYRaspar(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (clientX - rect.left) * (canvas.width / rect.width);
+                const y = (clientY - rect.top) * (canvas.height / rect.height);
+
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(x, y, 35, 0, Math.PI * 2);
+                ctx.fill();
+
+                checkScratchPercentage();
+            }
+
+            // --- MOTOR PARA COMPUTADORAS (MOUSE) ---
+            canvas.addEventListener('mousedown', (e) => { isDrawing = true; calcularYRaspar(e.clientX, e.clientY); });
+            canvas.addEventListener('mousemove', (e) => { if (isDrawing) calcularYRaspar(e.clientX, e.clientY); });
+            window.addEventListener('mouseup', () => isDrawing = false);
+
+            // --- MOTOR PARA CELULARES (TOUCH) ---
+            canvas.addEventListener('touchstart', (e) => {
+                isDrawing = true;
+                const t = e.touches[0];
+                calcularYRaspar(t.clientX, t.clientY);
+            }, { passive: true });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!isDrawing) return;
+                if (e.cancelable) e.preventDefault(); // Evita que la pantalla se mueva al raspar
+                const t = e.touches[0];
+                calcularYRaspar(t.clientX, t.clientY);
+            }, { passive: false });
+
+            window.addEventListener('touchend', () => isDrawing = false);
+
+            function checkScratchPercentage() {
+                try {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+                    let clearedPixels = 0;
+
+                    for (let i = 3; i < pixels.length; i += 4) {
+                        if (pixels[i] === 0) clearedPixels++;
+                    }
+
+                    const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
+                    if (percentage > 16) revelarPropuesta(); // 16% es ideal para pantallas móviles
+                } catch(e) {
+                    revelarPropuesta();
+                }
+            }
+
+            function revelarPropuesta() {
+                canvas.style.transition = 'opacity 0.5s ease';
+                canvas.style.opacity = '0';
+                setTimeout(() => {
+                    canvas.style.display = 'none';
+                    const proposal = document.getElementById('proposal-section');
+                    proposal.style.display = 'block';
+                    setTimeout(() => {
+                        proposal.style.opacity = '1';
+                        initBotonNo(); 
+                    }, 50);
+                }, 500);
+            }
         }
 
-        surpriseBox.addEventListener('click', abrirRegalo);
-        surpriseBox.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            abrirRegalo();
-        });
-
-        // --- 3. JUEGO DEL BOTÓN NO (BLINDADO CON CSS TRANSFORMS) ---
+        // --- 3. JUEGO DEL BOTÓN NO (ANTI-SALTOS) ---
         let intentosNo = 0;
         let scaleSi = 1;
         let bloqueado = false;
@@ -244,9 +293,8 @@
         function initBotonNo() {
             const btnNo = document.getElementById('btn-no');
 
-            // Manejador único tanto para mouse sobre PC como para toques en móvil
             const huyeBoton = (e) => {
-                if (e) e.preventDefault();
+                if (e) e.preventDefault(); // Detiene clics fantasma fulminantemente
                 if (bloqueado) return;
                 bloqueado = true;
 
@@ -256,7 +304,7 @@
                 if (intentosNo >= 5) {
                     btnSi.innerText = textosSi[3];
                     btnNo.style.display = 'none';
-                    btnSi.style.transform = `scale(1.4)`;
+                    btnSi.style.transform = `scale(1.4)`; // Tamaño final controlado y estético
                     return;
                 }
 
@@ -264,21 +312,20 @@
                     btnSi.innerText = textosSi[intentosNo - 1];
                 }
 
-                // En lugar de moverlo por píxeles absolutos que rompen la pantalla en móviles,
-                // lo desplazamos usando CSS Translate dentro de rangos seguros.
-                const x Aleatorio = (Math.random() * 160) - 80; // Se mueve entre -80px y 80px a los lados
-                const y Aleatorio = (Math.random() * 60) - 30;  // Se mueve entre -30px y 30px arriba/abajo
+                // Usamos translate en rangos seguros para que se mueva fluido en PC y celular
+                const xAleatorio = (Math.random() * 140) - 70; 
+                const yAleatorio = (Math.random() * 60) - 30;  
 
                 btnNo.style.transform = `translate(${xAleatorio}px, ${yAleatorio}px)`;
 
-                // Crece el botón SÍ de forma sutil
-                scaleSi += 0.12;
+                scaleSi += 0.12; // Crecimiento progresivo y suave del botón SÍ
                 btnSi.style.transform = `scale(${scaleSi})`;
 
-                // Pequeño tiempo de espera para que los eventos táctiles duplicados no sumen de golpe
-                setTimeout(() => { bloqueado = false; }, 250);
+                // Candado de tiempo estricto: ignora toques repetidos por 300ms
+                setTimeout(() => { bloqueado = false; }, 300);
             };
 
+            // Eventos limpios por plataforma
             btnNo.addEventListener('mouseover', huyeBoton);
             btnNo.addEventListener('touchstart', huyeBoton, { passive: false });
             btnNo.addEventListener('click', huyeBoton);
