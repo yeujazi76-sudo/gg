@@ -69,12 +69,12 @@
             font-size: 1.1rem;
         }
 
-        /* 3. ZONA DE RASPADITO (AJUSTADA A PROPORCIÓN 3:4) */
+        /* 3. ZONA DE RASPADITO (PROPORCIÓN 3:4) */
         .canvas-container {
             position: relative;
             width: 100%;
-            max-width: 300px; /* Ancho ajustado */
-            height: 400px;    /* Alto ajustado para simular 3:4 */
+            max-width: 300px;
+            height: 400px;
             margin: 30px auto;
             border-radius: 15px;
             overflow: hidden;
@@ -87,8 +87,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain; /* Ajusta la imagen completa sin recortar nada */
-            background-color: #1a1a1a; /* Fondo por si quedan pequeñas barras negras */
+            object-fit: contain;
+            background-color: #1a1a1a;
             z-index: 1;
         }
         #scratch-canvas {
@@ -117,7 +117,7 @@
         .buttons-wrapper {
             margin-top: 30px;
             position: relative;
-            height: 120px;
+            height: 160px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -136,6 +136,8 @@
             background-color: #ff4d6d;
             color: white;
             z-index: 10;
+            white-space: normal;
+            max-width: 280px;
         }
         #btn-no {
             background-color: #444;
@@ -148,28 +150,24 @@
 </head>
 <body>
 
-    <!-- PANTALLA 1: EL CÓDIGO SECRETO -->
     <div id="screen-lock">
         <input type="password" id="code" class="code-input" placeholder="0000" maxlength="4" autocomplete="off">
     </div>
 
-    <!-- PANTALLA 2: EL CONTENIDO OCULTO -->
     <div id="main-content">
         <div class="container">
-            <h1>Hola, tengo un regalo para ti ✨</h1>
+            <h1>Hola, tengo un regalo para ti</h1>
             <p>Raspa el cuadro de abajo para descubrirlo por completo:</p>
             
             <div class="canvas-container">
                 <img class="dibujo-fondo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
-                <!-- El canvas ahora tiene resolución interna de 300x400 -->
                 <canvas id="scratch-canvas" width="300" height="400"></canvas>
             </div>
 
-            <!-- Sección de la declaración -->
             <div id="proposal-section">
                 <h2>eres una persona muy importante para mi, me gustaria llevar esto al siguiente paso ¿que dices?</h2>
                 <div class="buttons-wrapper">
-                    <button id="btn-si" class="btn" onclick="aceptar()">SIII acepto 💖</button>
+                    <button id="btn-si" class="btn" onclick="aceptar()">SIII acepto</button>
                     <button id="btn-no" class="btn" onmouseover="moverBotonNo()" onclick="moverBotonNo()">no</button>
                 </div>
             </div>
@@ -210,16 +208,14 @@
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 18px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('raspameee 🔍', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('raspameee', canvas.width / 2, canvas.height / 2);
 
             function scratch(e) {
                 if (!isDrawing) return;
                 
                 const rect = canvas.getBoundingClientRect();
-                
-                // Cálculo de coordenadas adaptado a la nueva escala 300x400
                 const x = ((e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left) * (canvas.width / rect.width);
-                const y = ((e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)) - rect.top) * (canvas.height / rect.height);
+                const y = ((e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.top) * (canvas.height / rect.height);
 
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.beginPath();
@@ -249,7 +245,7 @@
 
                     const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
 
-                    if (percentage > 25) { // Revela un poco más rápido al ser más alta
+                    if (percentage > 25) {
                         revelarPropuesta();
                     }
                 } catch(e) {
@@ -270,10 +266,17 @@
             }
         }
 
-        // --- 3. BOTONES INTERACTIVOS ---
+        // --- 3. BOTONES INTERACTIVOS SIN EMOJIS ---
         let intentosNo = 0;
         let scaleSi = 1;
         let haCambiadoAPosicionAbsoluta = false;
+
+        const textosSi = [
+            "SIII acepto, te amo",
+            "SIII, acepto, te amo, casate conmigo",
+            "SIII, acepto, te amo, casate conmigo, hazme 3 hijos",
+            "SIII, acepto, te amo, casate conmigo, hazme 3 hijos, te adoro eternamente"
+        ];
 
         function moverBotonNo() {
             const btnNo = document.getElementById('btn-no');
@@ -282,9 +285,16 @@
 
             intentosNo++;
 
-            if (intentosNo >= 6) {
+            if (intentosNo >= 5) {
+                btnSi.innerText = textosSi[3];
                 btnNo.style.display = 'none';
+                scaleSi += 0.25;
+                btnSi.style.transform = `scale(${scaleSi})`;
                 return;
+            }
+
+            if (intentosNo <= textosSi.length) {
+                btnSi.innerText = textosSi[intentosNo - 1];
             }
 
             if (!haCambiadoAPosicionAbsoluta) {
@@ -306,7 +316,7 @@
         }
 
         function aceptar() {
-            alert("yeiiii, muak ❤️");
+            alert("yeiiii, muak");
         }
     </script>
 </body>
