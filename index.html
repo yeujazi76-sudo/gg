@@ -115,54 +115,46 @@
         }
         .buttons-wrapper {
             margin-top: 30px;
+            position: relative;
+            height: 120px;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
             gap: 20px;
-            min-height: 150px;
         }
         .btn {
-            padding: 14px 30px;
+            padding: 12px 25px;
             font-size: 1.1rem;
             font-weight: bold;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+            transition: transform 0.1s ease;
         }
         #btn-si {
             background-color: #ff4d6d;
             color: white;
-            order: 1;
+            z-index: 10;
         }
         #btn-no {
             background-color: #444;
             color: #aaa;
-            order: 2;
-        }
-
-        /* Animación de sacudida cuando da clic a No */
-        @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            50% { transform: translateX(8px); }
-            75% { transform: translateX(-8px); }
-            100% { transform: translateX(0); }
-        }
-        .shake-effect {
-            animation: shake 0.3s ease-in-out;
+            position: relative;
+            z-index: 5;
+            transition: all 0.15s ease;
         }
     </style>
 </head>
 <body>
 
+    <!-- PANTALLA 1: EL CÓDIGO SECRETO -->
     <div id="screen-lock">
         <input type="password" id="code" class="code-input" placeholder="0000" maxlength="4" autocomplete="off">
     </div>
 
+    <!-- PANTALLA 2: EL CONTENIDO OCULTO -->
     <div id="main-content">
-        <div class="container" id="main-container">
+        <div class="container">
             <h1>Hola, tengo un regalo para ti ✨</h1>
             <p>Raspa el cuadro de abajo para descubrirlo por completo:</p>
             
@@ -171,11 +163,12 @@
                 <canvas id="scratch-canvas" width="350" height="350"></canvas>
             </div>
 
+            <!-- Sección de la declaración -->
             <div id="proposal-section">
                 <h2>eres una persona muy importante para mi, me gustaria llevar esto al siguiente paso ¿que dices?</h2>
                 <div class="buttons-wrapper">
                     <button id="btn-si" class="btn" onclick="aceptar()">SIII acepto 💖</button>
-                    <button id="btn-no" class="btn" onclick="reaccionarNo()">no</button>
+                    <button id="btn-no" class="btn" onmouseover="moverBotonNo()" onclick="moverBotonNo()">no</button>
                 </div>
             </div>
         </div>
@@ -273,41 +266,43 @@
             }
         }
 
-        // --- 3. LÓGICA DE CLICS EN EL BOTÓN "NO" ---
-        let clicksEnNo = 0;
+        // --- 3. BOTONES INTERACTIVOS ---
+        let intentosNo = 0;
         let scaleSi = 1;
-        
-        // Lista de frases que aparecerán en el botón "no" cada vez que lo presione
-        const frasesNo = [
-            "¿segura? 🥺",
-            "piénsalo otra vez... oye",
-            "andaaa, di que sí porfa",
-            "ese botón no funciona bien creo jaja",
-            "está bien, ya no insisto... ¡broma! presiona SÍ 😂"
-        ];
+        let haCambiadoAPosicionAbsoluta = false;
 
-        function reaccionarNo() {
+        function moverBotonNo() {
             const btnNo = document.getElementById('btn-no');
             const btnSi = document.getElementById('btn-si');
-            const container = document.getElementById('main-container');
+            const wrapper = document.querySelector('.buttons-wrapper');
 
-            clicksEnNo++;
+            intentosNo++;
 
-            // Efecto visual de sacudida en la tarjeta
-            container.classList.add('shake-effect');
-            setTimeout(() => container.classList.remove('shake-effect'), 300);
-
-            if (clicksEnNo <= frasesNo.length) {
-                // Cambiar texto del botón "no"
-                btnNo.innerText = frasesNo[clicksEnNo - 1];
-                
-                // Hacer crecer el botón SÍ significativamente en cada intento
-                scaleSi += 0.4;
-                btnSi.style.transform = `scale(${scaleSi})`;
-            } else {
-                // Al llegar al límite de clics, el botón "no" desaparece
+            // Al 6to intento (ya sea por clic o por pasar el cursor), el botón "no" desaparece por completo
+            if (intentosNo >= 6) {
                 btnNo.style.display = 'none';
+                return;
             }
+
+            // Cambiar a posición absoluta en el primer intento para poder moverse libremente
+            if (!haCambiadoAPosicionAbsoluta) {
+                btnNo.style.position = 'absolute';
+                haCambiadoAPosicionAbsoluta = true;
+            }
+
+            // Calcular coordenadas aleatorias dentro del bloque de botones
+            const maxX = wrapper.clientWidth - btnNo.clientWidth;
+            const maxY = wrapper.clientHeight - btnNo.clientHeight;
+
+            const randomX = Math.floor(Math.random() * maxX);
+            const randomY = Math.floor(Math.random() * (maxY - (-20))) + (-20); 
+
+            btnNo.style.left = randomX + 'px';
+            btnNo.style.top = randomY + 'px';
+
+            // El botón "SIII" sigue creciendo un poco cada vez para llamar la atención
+            scaleSi += 0.25;
+            btnSi.style.transform = `scale(${scaleSi})`;
         }
 
         function aceptar() {
