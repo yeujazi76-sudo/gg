@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Un rincón especial ✨</title>
+    <title>burbujita</title>
     <style>
         * {
             box-sizing: border-box;
@@ -41,7 +41,7 @@
             color: #444;
         }
 
-        /* 2. CONTENIDO PRINCIPAL (OCULTO AL INICIO) */
+        /* 2. CONTENIDO PRINCIPAL */
         #main-content {
             display: none;
             opacity: 0;
@@ -107,35 +107,51 @@
             transition: opacity 0.5s ease;
             margin-top: 20px;
         }
+        #proposal-section h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            line-height: 1.5;
+            padding: 0 10px;
+        }
         .buttons-wrapper {
             margin-top: 30px;
-            position: relative;
-            height: 120px;
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-direction: column;
             gap: 20px;
+            min-height: 150px;
         }
         .btn {
-            padding: 12px 25px;
+            padding: 14px 30px;
             font-size: 1.1rem;
             font-weight: bold;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: transform 0.1s ease;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
         }
         #btn-si {
             background-color: #ff4d6d;
             color: white;
-            z-index: 10;
+            order: 1;
         }
         #btn-no {
             background-color: #444;
             color: #aaa;
-            position: relative;
-            z-index: 5;
-            transition: all 0.15s ease;
+            order: 2;
+        }
+
+        /* Animación de sacudida cuando da clic a No */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-8px); }
+            100% { transform: translateX(0); }
+        }
+        .shake-effect {
+            animation: shake 0.3s ease-in-out;
         }
     </style>
 </head>
@@ -146,9 +162,9 @@
     </div>
 
     <div id="main-content">
-        <div class="container">
-            <h1>Hola... ✨</h1>
-            <p>Quería decirte algo importante de una manera un poco diferente. Raspa el cuadro de abajo para descubrirlo por completo:</p>
+        <div class="container" id="main-container">
+            <h1>Hola, tengo un regalo para ti ✨</h1>
+            <p>Raspa el cuadro de abajo para descubrirlo por completo:</p>
             
             <div class="canvas-container">
                 <img class="dibujo-fondo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
@@ -156,10 +172,10 @@
             </div>
 
             <div id="proposal-section">
-                <h2>¿Quieres ser mi novia? 🌹</h2>
+                <h2>eres una persona muy importante para mi, me gustaria llevar esto al siguiente paso ¿que dices?</h2>
                 <div class="buttons-wrapper">
-                    <button id="btn-si" class="btn" onclick="aceptar()">¡SÍ! 💖</button>
-                    <button id="btn-no" class="btn" onmouseover="moverBotonNo()" onclick="moverBotonNo()">No</button>
+                    <button id="btn-si" class="btn" onclick="aceptar()">SIII acepto 💖</button>
+                    <button id="btn-no" class="btn" onclick="reaccionarNo()">no</button>
                 </div>
             </div>
         </div>
@@ -179,14 +195,13 @@
                     mainContent.style.display = 'block';
                     setTimeout(() => {
                         mainContent.style.opacity = '1';
-                        // Inicializa el raspadito de forma segura
                         initScratch();
                     }, 50);
                 }, 500);
             }
         });
 
-        // --- 2. RASPADITO SEGURO ---
+        // --- 2. RASPADITO ---
         function initScratch() {
             const canvas = document.getElementById('scratch-canvas');
             if (!canvas) return;
@@ -198,9 +213,9 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = '#ffffff';
-            ctx.font = '16px sans-serif';
+            ctx.font = 'bold 18px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('Raspa aquí con el dedo o cursor 🔍', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('raspameee 🔍', canvas.width / 2, canvas.height / 2);
 
             function scratch(e) {
                 if (!isDrawing) return;
@@ -241,7 +256,6 @@
                         revelarPropuesta();
                     }
                 } catch(e) {
-                    // Si el navegador da error de seguridad local por la imagen, revela la propuesta igual
                     revelarPropuesta();
                 }
             }
@@ -259,35 +273,45 @@
             }
         }
 
-        // --- 3. BOTONES INTERACTIVOS ---
+        // --- 3. LÓGICA DE CLICS EN EL BOTÓN "NO" ---
+        let clicksEnNo = 0;
         let scaleSi = 1;
-        let haCambiadoAPosicionAbsoluta = false;
+        
+        // Lista de frases que aparecerán en el botón "no" cada vez que lo presione
+        const frasesNo = [
+            "¿segura? 🥺",
+            "piénsalo otra vez... oye",
+            "andaaa, di que sí porfa",
+            "ese botón no funciona bien creo jaja",
+            "está bien, ya no insisto... ¡broma! presiona SÍ 😂"
+        ];
 
-        function moverBotonNo() {
+        function reaccionarNo() {
             const btnNo = document.getElementById('btn-no');
             const btnSi = document.getElementById('btn-si');
-            const wrapper = document.querySelector('.buttons-wrapper');
+            const container = document.getElementById('main-container');
 
-            if (!haCambiadoAPosicionAbsoluta) {
-                btnNo.style.position = 'absolute';
-                haCambiadoAPosicionAbsoluta = true;
+            clicksEnNo++;
+
+            // Efecto visual de sacudida en la tarjeta
+            container.classList.add('shake-effect');
+            setTimeout(() => container.classList.remove('shake-effect'), 300);
+
+            if (clicksEnNo <= frasesNo.length) {
+                // Cambiar texto del botón "no"
+                btnNo.innerText = frasesNo[clicksEnNo - 1];
+                
+                // Hacer crecer el botón SÍ significativamente en cada intento
+                scaleSi += 0.4;
+                btnSi.style.transform = `scale(${scaleSi})`;
+            } else {
+                // Al llegar al límite de clics, el botón "no" desaparece
+                btnNo.style.display = 'none';
             }
-
-            const maxX = wrapper.clientWidth - btnNo.clientWidth;
-            const maxY = wrapper.clientHeight - btnNo.clientHeight;
-
-            const randomX = Math.floor(Math.random() * maxX);
-            const randomY = Math.floor(Math.random() * (maxY - (-20))) + (-20); 
-
-            btnNo.style.left = randomX + 'px';
-            btnNo.style.top = randomY + 'px';
-
-            scaleSi += 0.3;
-            btnSi.style.transform = `scale(${scaleSi})`;
         }
 
         function aceptar() {
-            alert("¡Siiii! ¡Me haces la persona más feliz del universo! 👩‍❤️‍👨💖 (¡Sácale captura a esto ya mismo!)");
+            alert("yeiiii, muak ❤️");
         }
     </script>
 </body>
