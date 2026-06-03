@@ -18,7 +18,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
         /* 1. PANTALLA DE BLOQUEO */
@@ -38,16 +38,13 @@
             padding: 5px;
             outline: none;
         }
-        .code-input::placeholder {
-            color: #444;
-        }
 
         /* 2. CONTENIDO PRINCIPAL */
         #main-content {
             display: none;
             opacity: 0;
             width: 100%;
-            max-width: 600px;
+            max-width: 450px;
             padding: 20px;
             transition: opacity 0.8s ease;
         }
@@ -61,99 +58,101 @@
         }
         h1 {
             color: #ff4d6d;
-            font-size: 2rem;
-            margin-bottom: 20px;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
         }
         p {
-            line-height: 1.6;
             color: #b0b0b0;
-            font-size: 1.1rem;
+            font-size: 1rem;
+            margin-bottom: 25px;
         }
 
-        /* 3. ZONA DE RASPADITO */
-        .canvas-container {
+        /* 3. CAJA SORPRESA INTERACTIVA (REEMPLAZA AL RASPADITO) */
+        .box-container {
+            width: 100%;
+            height: 260px;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: relative;
-            width: 100%;
-            max-width: 300px;
-            height: 400px;
-            margin: 30px auto;
+        }
+        #surprise-box {
+            width: 140px;
+            height: 140px;
+            background-color: #ff4d6d;
             border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            border: 2px solid #ffccd5;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .dibujo-fondo {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            background-color: #1a1a1a;
-            z-index: 1;
-            pointer-events: none;
-            user-select: none;
-            -webkit-user-drag: none;
-        }
-        #scratch-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: white;
             cursor: pointer;
-            touch-action: none;
+            box-shadow: 0 8px 20px rgba(255, 77, 109, 0.4);
+            transition: transform 0.2s ease, opacity 0.5s ease;
+            animation: pulse 1.5s infinite;
+        }
+        #surprise-box:active {
+            transform: scale(0.9);
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* IMAGEN OCULTA */
+        .dibujo-fijo {
+            max-width: 100%;
+            max-height: 260px;
+            object-fit: contain;
+            border-radius: 12px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
         }
 
         /* 4. SECCIÓN PREGUNTA Y BOTONES */
         #proposal-section {
-            display: none;
+            visibility: hidden;
             opacity: 0;
             transition: opacity 0.5s ease;
-            margin-top: 20px;
+            margin-top: 25px;
         }
         #proposal-section h2 {
-            font-size: 1.3rem;
+            font-size: 1.15rem;
             font-weight: 600;
-            line-height: 1.5;
-            padding: 0 10px;
+            line-height: 1.4;
         }
         .buttons-wrapper {
-            margin-top: 30px;
+            margin-top: 25px;
             position: relative;
-            height: 180px; /* Un poco más de espacio para el juego de esquivar */
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 20px;
+            height: 100px; /* Contenedor controlado */
         }
         .btn {
             padding: 12px 25px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            transition: transform 0.1s ease;
+            transition: transform 0.2s ease;
         }
         #btn-si {
             background-color: #ff4d6d;
             color: white;
             z-index: 10;
-            white-space: normal;
-            max-width: 280px;
-            display: inline-block;
         }
         #btn-no {
             background-color: #444;
             color: #aaa;
-            position: relative;
             z-index: 5;
-            transition: top 0.12s ease, left 0.12s ease;
+            /* Usamos transformaciones CSS en lugar de top/left para evitar saltos locos en móviles */
+            transition: transform 0.15s ease-out; 
         }
     </style>
 </head>
@@ -166,11 +165,11 @@
     <div id="main-content">
         <div class="container">
             <h1>Hola, tengo una sorpresa para ti</h1>
-            <p>Me costó un poco hacerlo, espero que te guste</p>
+            <p id="instruction-text">Toca el regalo para abrirlo</p>
             
-            <div class="canvas-container">
-                <img class="dibujo-fondo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
-                <canvas id="scratch-canvas" width="300" height="400"></canvas>
+            <div class="box-container">
+                <div id="surprise-box">¡Tócame!</div>
+                <img class="dibujo-fijo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
             </div>
 
             <div id="proposal-section">
@@ -197,108 +196,43 @@
                     mainContent.style.display = 'block';
                     setTimeout(() => {
                         mainContent.style.opacity = '1';
-                        initScratch();
                     }, 50);
                 }, 500);
             }
         });
 
-        // --- 2. RASPADITO ---
-        function initScratch() {
-            const canvas = document.getElementById('scratch-canvas');
-            if (!canvas) return;
+        // --- 2. REVELAR REGALO ---
+        const surpriseBox = document.getElementById('surprise-box');
+        const dibujo = document.getElementById('dibujo');
+        const instructionText = document.getElementById('instruction-text');
+        const proposalSection = document.getElementById('proposal-section');
+
+        // Funciona perfectamente con clic o toque sin importar el dispositivo
+        function abrirRegalo() {
+            surpriseBox.style.display = 'none';
+            instructionText.innerText = "¡Sorpresa!";
             
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-
-            ctx.fillStyle = '#3a3a3a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 18px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('raspameee', canvas.width / 2, canvas.height / 2);
-
-            function obtenerCoordenadas(e) {
-                const rect = canvas.getBoundingClientRect();
-                let clientX = e.clientX;
-                let clientY = e.clientY;
-
-                if (e.targetTouches && e.targetTouches.length > 0) {
-                    clientX = e.targetTouches[0].clientX;
-                    clientY = e.targetTouches[0].clientY;
-                } else if (e.touches && e.touches.length > 0) {
-                    clientX = e.touches[0].clientX;
-                    clientY = e.touches[0].clientY;
-                }
-
-                const x = (clientX - rect.left) * (canvas.width / rect.width);
-                const y = (clientY - rect.top) * (canvas.height / rect.height);
-                return { x, y };
-            }
-
-            function scratch(e) {
-                if (!isDrawing) return;
-                if (e.cancelable) e.preventDefault();
-
-                const pos = obtenerCoordenadas(e);
-
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 40); 
-                ctx.fill();
-
-                checkScratchPercentage();
-            }
-
-            canvas.addEventListener('pointerdown', (e) => { isDrawing = true; canvas.setPointerCapture(e.pointerId); scratch(e); });
-            canvas.addEventListener('pointermove', scratch);
-            canvas.addEventListener('pointerup', (e) => { isDrawing = false; canvas.releasePointerCapture(e.pointerId); });
-            canvas.addEventListener('pointercancel', () => isDrawing = false);
-
-            canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); }, { passive: false });
-            canvas.addEventListener('touchmove', (e) => { scratch(e); }, { passive: false });
-            window.addEventListener('touchend', () => isDrawing = false);
-
-            function checkScratchPercentage() {
-                try {
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const pixels = imageData.data;
-                    let clearedPixels = 0;
-
-                    for (let i = 3; i < pixels.length; i += 4) {
-                        if (pixels[i] === 0) clearedPixels++;
-                    }
-
-                    const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
-
-                    if (percentage > 18) { 
-                        revelarPropuesta();
-                    }
-                } catch(e) {
-                    revelarPropuesta();
-                }
-            }
-
-            function revelarPropuesta() {
-                canvas.style.transition = 'opacity 0.6s ease';
-                canvas.style.opacity = '0';
-                setTimeout(() => canvas.style.display = 'none', 600);
+            dibujo.style.display = 'block';
+            setTimeout(() => {
+                dibujo.style.opacity = '1';
                 
-                const proposal = document.getElementById('proposal-section');
-                proposal.style.display = 'block';
-                setTimeout(() => {
-                    proposal.style.opacity = '1';
-                    initBotonNo(); 
-                }, 50);
-            }
+                // Mostrar propuesta
+                proposalSection.style.visibility = 'visible';
+                proposalSection.style.opacity = '1';
+                initBotonNo();
+            }, 50);
         }
 
-        // --- 3. BOTÓN "NO" CON MOVIMIENTO Y ESCALA CONTROLADA ---
+        surpriseBox.addEventListener('click', abrirRegalo);
+        surpriseBox.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            abrirRegalo();
+        });
+
+        // --- 3. JUEGO DEL BOTÓN NO (BLINDADO CON CSS TRANSFORMS) ---
         let intentosNo = 0;
         let scaleSi = 1;
-        let haCambiadoAPosicionAbsoluta = false;
-        let estaProcesando = false; // Bandera estricta para evitar doble conteo en móviles
+        let bloqueado = false;
 
         const textosSi = [
             "SIII acepto, te amo",
@@ -310,65 +244,44 @@
         function initBotonNo() {
             const btnNo = document.getElementById('btn-no');
 
-            // En móviles usamos touchstart pero con un candado de tiempo impecable
-            btnNo.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Mata clicks fantasmas
-                if (estaProcesando) return;
-                estaProcesando = true;
+            // Manejador único tanto para mouse sobre PC como para toques en móvil
+            const huyeBoton = (e) => {
+                if (e) e.preventDefault();
+                if (bloqueado) return;
+                bloqueado = true;
 
-                moverBotonNo();
+                intentosNo++;
+                const btnSi = document.getElementById('btn-si');
 
-                // Espera un momento antes de permitir el siguiente toque
-                setTimeout(() => { estaProcesando = false; }, 300);
-            }, { passive: false });
+                if (intentosNo >= 5) {
+                    btnSi.innerText = textosSi[3];
+                    btnNo.style.display = 'none';
+                    btnSi.style.transform = `scale(1.4)`;
+                    return;
+                }
 
-            // Para computadoras usamos mouseover tradicional
-            btnNo.addEventListener('mouseover', () => {
-                if (estaProcesando) return;
-                estaProcesando = true;
+                if (intentosNo <= textosSi.length) {
+                    btnSi.innerText = textosSi[intentosNo - 1];
+                }
 
-                moverBotonNo();
+                // En lugar de moverlo por píxeles absolutos que rompen la pantalla en móviles,
+                // lo desplazamos usando CSS Translate dentro de rangos seguros.
+                const x Aleatorio = (Math.random() * 160) - 80; // Se mueve entre -80px y 80px a los lados
+                const y Aleatorio = (Math.random() * 60) - 30;  // Se mueve entre -30px y 30px arriba/abajo
 
-                setTimeout(() => { estaProcesando = false; }, 100);
-            });
-        }
+                btnNo.style.transform = `translate(${xAleatorio}px, ${yAleatorio}px)`;
 
-        function moverBotonNo() {
-            const btnNo = document.getElementById('btn-no');
-            const btnSi = document.getElementById('btn-si');
-            const wrapper = document.querySelector('.buttons-wrapper');
-
-            intentosNo++;
-
-            if (intentosNo >= 5) {
-                btnSi.innerText = textosSi[3];
-                btnNo.style.display = 'none';
-                scaleSi = 1.6; // Tamaño máximo fijo y limpio para que no rompa la interfaz
+                // Crece el botón SÍ de forma sutil
+                scaleSi += 0.12;
                 btnSi.style.transform = `scale(${scaleSi})`;
-                return;
-            }
 
-            if (intentosNo <= textosSi.length) {
-                btnSi.innerText = textosSi[intentosNo - 1];
-            }
+                // Pequeño tiempo de espera para que los eventos táctiles duplicados no sumen de golpe
+                setTimeout(() => { bloqueado = false; }, 250);
+            };
 
-            if (!haCambiadoAPosicionAbsoluta) {
-                btnNo.style.position = 'absolute';
-                haCambiadoAPosicionAbsoluta = true;
-            }
-
-            const maxX = wrapper.clientWidth - btnNo.clientWidth;
-            const maxY = wrapper.clientHeight - btnNo.clientHeight;
-
-            const randomX = Math.floor(Math.random() * maxX);
-            const randomY = Math.floor(Math.random() * (maxY - (-20))) + (-20); 
-
-            btnNo.style.left = randomX + 'px';
-            btnNo.style.top = randomY + 'px';
-
-            // Crece un poco menos en cada paso (+0.15) para controlar el tamaño final
-            scaleSi += 0.15;
-            btnSi.style.transform = `scale(${scaleSi})`;
+            btnNo.addEventListener('mouseover', huyeBoton);
+            btnNo.addEventListener('touchstart', huyeBoton, { passive: false });
+            btnNo.addEventListener('click', huyeBoton);
         }
 
         function aceptar() {
