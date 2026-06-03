@@ -151,7 +151,7 @@
             <p>Quería decirte algo importante de una manera un poco diferente. Raspa el cuadro de abajo para descubrirlo por completo:</p>
             
             <div class="canvas-container">
-                <img class="dibujo-fondo" src="midibujo.png" alt="Dibujo sorpresa">
+                <img class="dibujo-fondo" id="dibujo" src="midibujo.png" alt="Dibujo sorpresa">
                 <canvas id="scratch-canvas" width="350" height="350"></canvas>
             </div>
 
@@ -178,4 +178,117 @@
                     screenLock.style.display = 'none';
                     mainContent.style.display = 'block';
                     setTimeout(() => {
-                        mainContent.style.
+                        mainContent.style.opacity = '1';
+                        // Inicializa el raspadito de forma segura
+                        initScratch();
+                    }, 50);
+                }, 500);
+            }
+        });
+
+        // --- 2. RASPADITO SEGURO ---
+        function initScratch() {
+            const canvas = document.getElementById('scratch-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Raspa aquí con el dedo o cursor 🔍', canvas.width / 2, canvas.height / 2);
+
+            function scratch(e) {
+                if (!isDrawing) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left;
+                const y = (e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0)) - rect.top;
+
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(x, y, 35, 0, Math.PI * 2); 
+                ctx.fill();
+
+                checkScratchPercentage();
+            }
+
+            canvas.addEventListener('mousedown', () => isDrawing = true);
+            canvas.addEventListener('mousemove', scratch);
+            window.addEventListener('mouseup', () => isDrawing = false);
+
+            canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); scratch(e); });
+            window.addEventListener('touchend', () => isDrawing = false);
+
+            function checkScratchPercentage() {
+                try {
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+                    let clearedPixels = 0;
+
+                    for (let i = 3; i < pixels.length; i += 4) {
+                        if (pixels[i] === 0) clearedPixels++;
+                    }
+
+                    const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
+
+                    if (percentage > 30) {
+                        revelarPropuesta();
+                    }
+                } catch(e) {
+                    // Si el navegador da error de seguridad local por la imagen, revela la propuesta igual
+                    revelarPropuesta();
+                }
+            }
+
+            function revelarPropuesta() {
+                canvas.style.transition = 'opacity 0.6s ease';
+                canvas.style.opacity = '0';
+                setTimeout(() => canvas.style.display = 'none', 600);
+                
+                const proposal = document.getElementById('proposal-section');
+                proposal.style.display = 'block';
+                setTimeout(() => {
+                    proposal.style.opacity = '1';
+                }, 50);
+            }
+        }
+
+        // --- 3. BOTONES INTERACTIVOS ---
+        let scaleSi = 1;
+        let haCambiadoAPosicionAbsoluta = false;
+
+        function moverBotonNo() {
+            const btnNo = document.getElementById('btn-no');
+            const btnSi = document.getElementById('btn-si');
+            const wrapper = document.querySelector('.buttons-wrapper');
+
+            if (!haCambiadoAPosicionAbsoluta) {
+                btnNo.style.position = 'absolute';
+                haCambiadoAPosicionAbsoluta = true;
+            }
+
+            const maxX = wrapper.clientWidth - btnNo.clientWidth;
+            const maxY = wrapper.clientHeight - btnNo.clientHeight;
+
+            const randomX = Math.floor(Math.random() * maxX);
+            const randomY = Math.floor(Math.random() * (maxY - (-20))) + (-20); 
+
+            btnNo.style.left = randomX + 'px';
+            btnNo.style.top = randomY + 'px';
+
+            scaleSi += 0.3;
+            btnSi.style.transform = `scale(${scaleSi})`;
+        }
+
+        function aceptar() {
+            alert("¡Siiii! ¡Me haces la persona más feliz del universo! 👩‍❤️‍👨💖 (¡Sácale captura a esto ya mismo!)");
+        }
+    </script>
+</body>
+</html>
