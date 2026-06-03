@@ -7,6 +7,7 @@
     <style>
         * {
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* Quita el cuadro azul feo al tocar botones en móvil */
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -69,7 +70,7 @@
             font-size: 1.1rem;
         }
 
-        /* 3. ZONA DE RASPADITO (PROPORCIÓN 3:4 OPTIMIZADA) */
+        /* 3. ZONA DE RASPADITO OPTIMIZADA */
         .canvas-container {
             position: relative;
             width: 100%;
@@ -80,8 +81,9 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             border: 2px solid #ffccd5;
-            /* Evita gestos nativos del navegador móvil en esta área */
-            touch-action: none;
+            touch-action: none; /* Bloquea por completo el scroll nativo aquí */
+            user-select: none;
+            -webkit-user-select: none;
         }
         .dibujo-fondo {
             position: absolute;
@@ -92,7 +94,7 @@
             object-fit: contain;
             background-color: #1a1a1a;
             z-index: 1;
-            /* Evita selección accidental en móviles */
+            pointer-events: none; /* Evita que la imagen interfiera con el toque */
             user-select: none;
             -webkit-user-drag: none;
         }
@@ -150,7 +152,7 @@
             color: #aaa;
             position: relative;
             z-index: 5;
-            transition: all 0.15s ease;
+            transition: top 0.15s ease, left 0.15s ease;
         }
     </style>
 </head>
@@ -174,7 +176,8 @@
                 <h2>Eres una persona muy importante para mi, me gustaria llevar esto al siguiente paso ¿Qué dices?</h2>
                 <div class="buttons-wrapper">
                     <button id="btn-si" class="btn" onclick="aceptar()">SIII acepto</button>
-                    <button id="btn-no" class="btn" onmouseover="moverBotonNo()" onclick="moverBotonNo()">no</button>
+                    <!-- Eliminados los onclick y onmouseover inline para manejarlos limpiamente por JS seguro en móvil -->
+                    <button id="btn-no" class="btn">no</button>
                 </div>
             </div>
         </div>
@@ -200,7 +203,7 @@
             }
         });
 
-        // --- 2. RASPADITO ADAPTADO A MÓVILES ---
+        // --- 2. RASPADITO ULTRARRESPONSIVO ---
         function initScratch() {
             const canvas = document.getElementById('scratch-canvas');
             if (!canvas) return;
@@ -216,17 +219,18 @@
             ctx.textAlign = 'center';
             ctx.fillText('raspameee', canvas.width / 2, canvas.height / 2);
 
-            // Función unificada para obtener las coordenadas exactas de mouse y touch
             function obtenerCoordenadas(e) {
                 const rect = canvas.getBoundingClientRect();
-                let clientX, clientY;
+                // Usamos cambiaos a targetTouches para móviles o e.clientX para PC de forma directa
+                let clientX = e.clientX;
+                let clientY = e.clientY;
 
-                if (e.touches && e.touches.length > 0) {
+                if (e.targetTouches && e.targetTouches.length > 0) {
+                    clientX = e.targetTouches[0].clientX;
+                    clientY = e.targetTouches[0].clientY;
+                } else if (e.touches && e.touches.length > 0) {
                     clientX = e.touches[0].clientX;
                     clientY = e.touches[0].clientY;
-                } else {
-                    clientX = e.clientX;
-                    clientY = e.clientY;
                 }
 
                 const x = (clientX - rect.left) * (canvas.width / rect.width);
@@ -236,28 +240,27 @@
 
             function scratch(e) {
                 if (!isDrawing) return;
-                
-                // Evita el scroll o zoom nativo del móvil mientras raspas
                 if (e.cancelable) e.preventDefault();
 
                 const pos = obtenerCoordenadas(e);
 
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 38, 0, Math.PI * 2); // Un radio ligeramente mayor para mejorar el tacto
+                ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); // Círculo un pelín más grande para que raspe suave sin esfuerzo
                 ctx.fill();
 
                 checkScratchPercentage();
             }
 
-            // Eventos de Mouse
-            canvas.addEventListener('mousedown', (e) => { isDrawing = true; scratch(e); });
-            canvas.addEventListener('mousemove', scratch);
-            window.addEventListener('mouseup', () => isDrawing = false);
+            // Usamos PointerEvents si están disponibles (lo estándar hoy en día) o TouchEvents clásicos
+            canvas.addEventListener('pointerdown', (e) => { isDrawing = true; canvas.setPointerCapture(e.pointerId); scratch(e); });
+            canvas.addEventListener('pointermove', scratch);
+            canvas.addEventListener('pointerup', (e) => { isDrawing = false; canvas.releasePointerCapture(e.pointerId); });
+            canvas.addEventListener('pointercancel', () => isDrawing = false);
 
-            // Eventos Táctiles con listeners no pasivos para asegurar el preventDefault()
+            // Respaldo estricto para navegadores móviles antiguos
             canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); }, { passive: false });
-            canvas.addEventListener('touchmove', scratch, { passive: false });
+            canvas.addEventListener('touchmove', (e) => { scratch(e); }, { passive: false });
             window.addEventListener('touchend', () => isDrawing = false);
 
             function checkScratchPercentage() {
@@ -272,7 +275,7 @@
 
                     const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
 
-                    if (percentage > 22) { // Revelado optimizado para pantallas táctiles
+                    if (percentage > 18) { // Bajé a 18% para que no frustre en pantallas chicas y pase rápido
                         revelarPropuesta();
                     }
                 } catch(e) {
@@ -289,11 +292,12 @@
                 proposal.style.display = 'block';
                 setTimeout(() => {
                     proposal.style.opacity = '1';
+                    initBotonNo(); // Iniciamos los listeners del botón una vez que aparece
                 }, 50);
             }
         }
 
-        // --- 3. BOTONES INTERACTIVOS SIN EMOJIS ---
+        // --- 3. SOLUCIÓN AL CLIC FANTASMA DEL BOTÓN "NO" ---
         let intentosNo = 0;
         let scaleSi = 1;
         let haCambiadoAPosicionAbsoluta = false;
@@ -304,6 +308,27 @@
             "SIII, acepto, te amo, casate conmigo, hazme 3 hijos",
             "SIII, acepto, te amo, casate conmigo, hazme 3 hijos, te adoro eternamente"
         ];
+
+        function initBotonNo() {
+            const btnNo = document.getElementById('btn-no');
+
+            // En móviles usamos 'touchstart' con preventDefault para moverlo ANTES de que se genere el "clic" en la pantalla
+            btnNo.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Matamos el clic fantasma aquí. Ya no activará el botón SÍ.
+                moverBotonNo();
+            }, { passive: false });
+
+            // Para computadoras mantenemos el paso del mouse por encima
+            btnNo.addEventListener('mouseover', () => {
+                moverBotonNo();
+            });
+            
+            // Si por alguna razón en PC logran hacer click directo
+            btnNo.addEventListener('click', (e) => {
+                e.preventDefault();
+                moverBotonNo();
+            });
+        }
 
         function moverBotonNo() {
             const btnNo = document.getElementById('btn-no');
