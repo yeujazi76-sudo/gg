@@ -152,7 +152,7 @@
             color: #aaa;
             position: relative;
             z-index: 5;
-            transition: top 0.15s ease, left 0.15s ease;
+            transition: top 0.15s ease, left 0.15s ease, opacity 0.1s ease;
         }
     </style>
 </head>
@@ -202,7 +202,7 @@
             }
         });
 
-        // --- 2. RASPADITO ULTRARRESPONSIVO ---
+        // --- 2. RASPADITO ---
         function initScratch() {
             const canvas = document.getElementById('scratch-canvas');
             if (!canvas) return;
@@ -293,11 +293,11 @@
             }
         }
 
-        // --- 3. MANEJO PROTEGIDO DEL BOTÓN "NO" (ANTI-MULTICLICK) ---
+        // --- 3. LÓGICA DE BOTONES DUAL (PC vs MÓVIL) ---
         let intentosNo = 0;
         let scaleSi = 1;
         let haCambiadoAPosicionAbsoluta = false;
-        let ultimoToque = 0; // Guardará el tiempo exacto del último clic procesado
+        let bloqueado = false;
 
         const textosSi = [
             "SIII acepto, te amo",
@@ -309,17 +309,79 @@
         function initBotonNo() {
             const btnNo = document.getElementById('btn-no');
 
-            // En móviles controlamos estrictamente con touchstart
-            btnNo.addEventListener('touchstart', (e) => {
-                e.preventDefault(); 
-                
-                const tiempoActual = new Date().getTime();
-                // Si pasaron menos de 400 milisegundos desde el último evento, lo ignora completamente
-                if (tiempoActual - ultimoToque < 400) return; 
-                ultimoToque = tiempoActual;
+            // Detectamos estrictamente pantallas táctiles
+            const esMovil = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 
-                moverBotonNo();
-            }, { passive: false });
+            if (esMovil) {
+                // En móvil usamos touchend para asegurar que el dedo se levantó antes de procesar la lógica
+                btnNo.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (bloqueado) return;
+                    bloqueado = true;
 
-            // Para computadoras (paso del mouse por arriba)
-            btnNo.addEventListener('mouseover', () =>
+                    // Desvanecemos el botón para simular la desaparición táctil
+                    btnNo.style.opacity = '0';
+                    
+                    procesarIntentoNo(false);
+
+                    // Reaparece limpiamente tras una pequeña pausa
+                    setTimeout(() => {
+                        if (intentosNo < 5) {
+                            btnNo.style.opacity = '1';
+                        }
+                        bloqueado = false;
+                    }, 300);
+                }, { passive: false });
+            } else {
+                // En computadoras se mantiene la esquivada tradicional por cursor
+                btnNo.addEventListener('mouseover', () => {
+                    procesarIntentoNo(true);
+                });
+            }
+        }
+
+        function procesarIntentoNo(debeMoverse) {
+            const btnNo = document.getElementById('btn-no');
+            const btnSi = document.getElementById('btn-si');
+            const wrapper = document.querySelector('.buttons-wrapper');
+
+            intentosNo++;
+
+            if (intentosNo >= 5) {
+                btnSi.innerText = textosSi[3];
+                btnNo.style.display = 'none';
+                scaleSi += 0.25;
+                btnSi.style.transform = `scale(${scaleSi})`;
+                return;
+            }
+
+            if (intentosNo <= textosSi.length) {
+                btnSi.innerText = textosSi[intentosNo - 1];
+            }
+
+            if (debeMoverse) {
+                if (!haCambiadoAPosicionAbsoluta) {
+                    btnNo.style.position = 'absolute';
+                    haCambiadoAPosicionAbsoluta = true;
+                }
+
+                const maxX = wrapper.clientWidth - btnNo.clientWidth;
+                const maxY = wrapper.clientHeight - btnNo.clientHeight;
+
+                const randomX = Math.floor(Math.random() * maxX);
+                const randomY = Math.floor(Math.random() * (maxY - (-20))) + (-20); 
+
+                btnNo.style.left = randomX + 'px';
+                btnNo.style.top = randomY + 'px';
+            }
+
+            scaleSi += 0.25;
+            btnSi.style.transform = `scale(${scaleSi})`;
+        }
+
+        function aceptar() {
+            alert("yeiiii, muak");
+        }
+    </script>
+</body>
+</html>
