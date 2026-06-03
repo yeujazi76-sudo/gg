@@ -81,7 +81,6 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             border: 2px solid #ffccd5;
         }
-        /* El dibujo real queda abajo de fondo */
         .dibujo-fondo {
             position: absolute;
             top: 0;
@@ -91,7 +90,6 @@
             object-fit: cover;
             z-index: 1;
         }
-        /* El lienzo gris para raspar queda arriba */
         #scratch-canvas {
             position: absolute;
             top: 0;
@@ -102,20 +100,21 @@
             cursor: pointer;
         }
 
-        /* 4. SECCIÓN PREGUNTA Y BOTONES (OCULTA HASTA QUE RASPE) */
+        /* 4. SECCIÓN PREGUNTA Y BOTONES */
         #proposal-section {
+            display: none;
             opacity: 0;
-            pointer-events: none;
             transition: opacity 0.5s ease;
             margin-top: 20px;
         }
         .buttons-wrapper {
             margin-top: 30px;
             position: relative;
-            height: 100px;
+            height: 120px;
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 20px;
         }
         .btn {
             padding: 12px 25px;
@@ -134,33 +133,28 @@
         #btn-no {
             background-color: #444;
             color: #aaa;
-            position: absolute;
+            position: relative;
             z-index: 5;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
     </style>
 </head>
 <body>
 
-    <!-- PANTALLA 1: EL CÓDIGO SECRETO -->
     <div id="screen-lock">
         <input type="password" id="code" class="code-input" placeholder="0000" maxlength="4" autocomplete="off">
     </div>
 
-    <!-- PANTALLA 2: EL CONTENIDO OCULTO -->
     <div id="main-content">
         <div class="container">
             <h1>Hola... ✨</h1>
             <p>Quería decirte algo importante de una manera un poco diferente. Raspa el cuadro de abajo para descubrirlo por completo:</p>
             
-            <!-- Contenedor del raspadito -->
             <div class="canvas-container">
-                <!-- REEMPLAZA "tu-dibujo.jpg" POR EL NOMBRE DE TU ARCHIVO -->
-                <img class="dibujo-fondo" src="tu-dibujo.jpg" alt="Dibujo sorpresa">
+                <img class="dibujo-fondo" src="midibujo.png" alt="Dibujo sorpresa">
                 <canvas id="scratch-canvas" width="350" height="350"></canvas>
             </div>
 
-            <!-- Sección de la declaración (aparece tras raspar el 50%) -->
             <div id="proposal-section">
                 <h2>¿Quieres ser mi novia? 🌹</h2>
                 <div class="buttons-wrapper">
@@ -172,124 +166,16 @@
     </div>
 
     <script>
-        // --- 1. LÓGICA DEL CÓDIGO DE ACCESO ---
+        // --- 1. CÓDIGO DE ACCESO ---
         const codeInput = document.getElementById('code');
         const screenLock = document.getElementById('screen-lock');
         const mainContent = document.getElementById('main-content');
 
         codeInput.addEventListener('input', () => {
             if (codeInput.value === '0305') {
-                // Desvanecer pantalla de bloqueo
                 screenLock.style.opacity = '0';
                 setTimeout(() => {
                     screenLock.style.display = 'none';
-                    // Mostrar contenido principal
                     mainContent.style.display = 'block';
                     setTimeout(() => {
-                        mainContent.style.opacity = '1';
-                        initScratch(); // Inicializar el raspadito
-                    }, 50);
-                }, 500);
-            }
-        });
-
-        // --- 2. LÓGICA DEL RASPADITO (CANVAS) ---
-        function initScratch() {
-            const canvas = document.getElementById('scratch-canvas');
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-
-            // Rellenar el canvas con un color gris oscuro misterioso
-            ctx.fillStyle = '#3a3a3a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Agregar un texto guía encima del gris
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '16px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Raspa aquí con el dedo o cursor 🔍', canvas.width / 2, canvas.height / 2);
-
-            // Función para borrar (raspar)
-            function scratch(e) {
-                if (!isDrawing) return;
-                
-                // Obtener coordenadas correctas de la pantalla/mouse o touch
-                const rect = canvas.getBoundingClientRect();
-                const x = (e.clientX || e.touches[0].clientX) - rect.left;
-                const y = (e.clientY || e.touches[0].clientY) - rect.top;
-
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(x, y, 30, 0, Math.PI * 2); // Radio del raspado (30px)
-                ctx.fill();
-
-                checkScratchPercentage();
-            }
-
-            // Eventos de Mouse
-            canvas.addEventListener('mousedown', () => isDrawing = true);
-            canvas.addEventListener('mousemove', scratch);
-            window.addEventListener('mouseup', () => isDrawing = false);
-
-            // Eventos Táctiles (Celulares)
-            canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); });
-            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); scratch(e); });
-            window.addEventListener('touchend', () => isDrawing = false);
-
-            // Verificar cuánto se ha raspado
-            function checkScratchPercentage() {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const pixels = imageData.data;
-                let clearedPixels = 0;
-
-                // Contar pixeles transparentes
-                for (let i = 3; i < pixels.length; i += 4) {
-                    if (pixels[i] === 0) clearedPixels++;
-                }
-
-                const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
-
-                // Si se raspó más del 40%, revelar el resto y mostrar los botones
-                if (percentage > 40) {
-                    canvas.style.transition = 'opacity 1s ease';
-                    canvas.style.opacity = '0';
-                    setTimeout(() => canvas.style.display = 'none', 1000);
-                    
-                    // Mostrar la gran pregunta
-                    const proposal = document.getElementById('proposal-section');
-                    proposal.style.opacity = '1';
-                    proposal.style.pointerEvents = 'auto';
-                }
-            }
-        }
-
-        // --- 3. LÓGICA DE LOS BOTONES INTERACTIVOS ---
-        let scaleSi = 1;
-
-        function moverBotonNo() {
-            const btnNo = document.getElementById('btn-no');
-            const btnSi = document.getElementById('btn-si');
-            const wrapper = document.querySelector('.buttons-wrapper');
-
-            // Mover el botón "No" a un lugar aleatorio dentro del contenedor
-            const maxX = wrapper.clientWidth - btnNo.clientWidth;
-            const maxY = wrapper.clientHeight - btnNo.clientHeight;
-
-            // Asegurar que no se salga de los márgenes
-            const randomX = Math.floor(Math.random() * maxX);
-            const randomY = Math.floor(Math.random() * (maxY - (-30))) + (-30); 
-
-            btnNo.style.left = randomX + 'px';
-            btnNo.style.top = randomY + 'px';
-
-            // Hacer crecer el botón "SÍ" cada vez que intentan tocar el "NO"
-            scaleSi += 0.25;
-            btnSi.style.transform = `scale(${scaleSi})`;
-        }
-
-        function aceptar() {
-            alert("¡Siiii! ¡Me haces la persona más feliz del universo! 👩‍❤️‍👨💖 (¡Sácale captura a esto ya mismo!)");
-        }
-    </script>
-</body>
-</html>
+                        mainContent.style.
