@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>burbujita</title>
     <style>
         * {
@@ -69,7 +69,7 @@
             font-size: 1.1rem;
         }
 
-        /* 3. ZONA DE RASPADITO (PROPORCIÓN 3:4) */
+        /* 3. ZONA DE RASPADITO (PROPORCIÓN 3:4 OPTIMIZADA) */
         .canvas-container {
             position: relative;
             width: 100%;
@@ -80,6 +80,8 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             border: 2px solid #ffccd5;
+            /* Evita gestos nativos del navegador móvil en esta área */
+            touch-action: none;
         }
         .dibujo-fondo {
             position: absolute;
@@ -90,6 +92,9 @@
             object-fit: contain;
             background-color: #1a1a1a;
             z-index: 1;
+            /* Evita selección accidental en móviles */
+            user-select: none;
+            -webkit-user-drag: none;
         }
         #scratch-canvas {
             position: absolute;
@@ -99,6 +104,7 @@
             height: 100%;
             z-index: 2;
             cursor: pointer;
+            touch-action: none;
         }
 
         /* 4. SECCIÓN PREGUNTA Y BOTONES */
@@ -194,7 +200,7 @@
             }
         });
 
-        // --- 2. RASPADITO ---
+        // --- 2. RASPADITO ADAPTADO A MÓVILES ---
         function initScratch() {
             const canvas = document.getElementById('scratch-canvas');
             if (!canvas) return;
@@ -210,27 +216,48 @@
             ctx.textAlign = 'center';
             ctx.fillText('raspameee', canvas.width / 2, canvas.height / 2);
 
+            // Función unificada para obtener las coordenadas exactas de mouse y touch
+            function obtenerCoordenadas(e) {
+                const rect = canvas.getBoundingClientRect();
+                let clientX, clientY;
+
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                const x = (clientX - rect.left) * (canvas.width / rect.width);
+                const y = (clientY - rect.top) * (canvas.height / rect.height);
+                return { x, y };
+            }
+
             function scratch(e) {
                 if (!isDrawing) return;
                 
-                const rect = canvas.getBoundingClientRect();
-                const x = ((e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.left) * (canvas.width / rect.width);
-                const y = ((e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientX : 0)) - rect.top) * (canvas.height / rect.height);
+                // Evita el scroll o zoom nativo del móvil mientras raspas
+                if (e.cancelable) e.preventDefault();
+
+                const pos = obtenerCoordenadas(e);
 
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.beginPath();
-                ctx.arc(x, y, 35, 0, Math.PI * 2); 
+                ctx.arc(pos.x, pos.y, 38, 0, Math.PI * 2); // Un radio ligeramente mayor para mejorar el tacto
                 ctx.fill();
 
                 checkScratchPercentage();
             }
 
-            canvas.addEventListener('mousedown', () => isDrawing = true);
+            // Eventos de Mouse
+            canvas.addEventListener('mousedown', (e) => { isDrawing = true; scratch(e); });
             canvas.addEventListener('mousemove', scratch);
             window.addEventListener('mouseup', () => isDrawing = false);
 
-            canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); });
-            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); scratch(e); });
+            // Eventos Táctiles con listeners no pasivos para asegurar el preventDefault()
+            canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); }, { passive: false });
+            canvas.addEventListener('touchmove', scratch, { passive: false });
             window.addEventListener('touchend', () => isDrawing = false);
 
             function checkScratchPercentage() {
@@ -245,7 +272,7 @@
 
                     const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
 
-                    if (percentage > 25) {
+                    if (percentage > 22) { // Revelado optimizado para pantallas táctiles
                         revelarPropuesta();
                     }
                 } catch(e) {
