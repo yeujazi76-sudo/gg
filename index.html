@@ -7,7 +7,7 @@
     <style>
         * {
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent; /* Quita el cuadro azul feo al tocar botones en móvil */
+            -webkit-tap-highlight-color: transparent;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -70,7 +70,7 @@
             font-size: 1.1rem;
         }
 
-        /* 3. ZONA DE RASPADITO OPTIMIZADA */
+        /* 3. ZONA DE RASPADITO */
         .canvas-container {
             position: relative;
             width: 100%;
@@ -81,7 +81,7 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             border: 2px solid #ffccd5;
-            touch-action: none; /* Bloquea por completo el scroll nativo aquí */
+            touch-action: none;
             user-select: none;
             -webkit-user-select: none;
         }
@@ -94,7 +94,7 @@
             object-fit: contain;
             background-color: #1a1a1a;
             z-index: 1;
-            pointer-events: none; /* Evita que la imagen interfiera con el toque */
+            pointer-events: none;
             user-select: none;
             -webkit-user-drag: none;
         }
@@ -176,7 +176,6 @@
                 <h2>Eres una persona muy importante para mi, me gustaria llevar esto al siguiente paso ¿Qué dices?</h2>
                 <div class="buttons-wrapper">
                     <button id="btn-si" class="btn" onclick="aceptar()">SIII acepto</button>
-                    <!-- Eliminados los onclick y onmouseover inline para manejarlos limpiamente por JS seguro en móvil -->
                     <button id="btn-no" class="btn">no</button>
                 </div>
             </div>
@@ -221,7 +220,6 @@
 
             function obtenerCoordenadas(e) {
                 const rect = canvas.getBoundingClientRect();
-                // Usamos cambiaos a targetTouches para móviles o e.clientX para PC de forma directa
                 let clientX = e.clientX;
                 let clientY = e.clientY;
 
@@ -246,19 +244,17 @@
 
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2); // Círculo un pelín más grande para que raspe suave sin esfuerzo
+                ctx.arc(pos.x, pos.y, 40); 
                 ctx.fill();
 
                 checkScratchPercentage();
             }
 
-            // Usamos PointerEvents si están disponibles (lo estándar hoy en día) o TouchEvents clásicos
             canvas.addEventListener('pointerdown', (e) => { isDrawing = true; canvas.setPointerCapture(e.pointerId); scratch(e); });
             canvas.addEventListener('pointermove', scratch);
             canvas.addEventListener('pointerup', (e) => { isDrawing = false; canvas.releasePointerCapture(e.pointerId); });
             canvas.addEventListener('pointercancel', () => isDrawing = false);
 
-            // Respaldo estricto para navegadores móviles antiguos
             canvas.addEventListener('touchstart', (e) => { isDrawing = true; scratch(e); }, { passive: false });
             canvas.addEventListener('touchmove', (e) => { scratch(e); }, { passive: false });
             window.addEventListener('touchend', () => isDrawing = false);
@@ -275,7 +271,7 @@
 
                     const percentage = (clearedPixels / (canvas.width * canvas.height)) * 100;
 
-                    if (percentage > 18) { // Bajé a 18% para que no frustre en pantallas chicas y pase rápido
+                    if (percentage > 18) { 
                         revelarPropuesta();
                     }
                 } catch(e) {
@@ -292,15 +288,16 @@
                 proposal.style.display = 'block';
                 setTimeout(() => {
                     proposal.style.opacity = '1';
-                    initBotonNo(); // Iniciamos los listeners del botón una vez que aparece
+                    initBotonNo(); 
                 }, 50);
             }
         }
 
-        // --- 3. SOLUCIÓN AL CLIC FANTASMA DEL BOTÓN "NO" ---
+        // --- 3. MANEJO PROTEGIDO DEL BOTÓN "NO" (ANTI-MULTICLICK) ---
         let intentosNo = 0;
         let scaleSi = 1;
         let haCambiadoAPosicionAbsoluta = false;
+        let ultimoToque = 0; // Guardará el tiempo exacto del último clic procesado
 
         const textosSi = [
             "SIII acepto, te amo",
@@ -312,64 +309,17 @@
         function initBotonNo() {
             const btnNo = document.getElementById('btn-no');
 
-            // En móviles usamos 'touchstart' con preventDefault para moverlo ANTES de que se genere el "clic" en la pantalla
+            // En móviles controlamos estrictamente con touchstart
             btnNo.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Matamos el clic fantasma aquí. Ya no activará el botón SÍ.
+                e.preventDefault(); 
+                
+                const tiempoActual = new Date().getTime();
+                // Si pasaron menos de 400 milisegundos desde el último evento, lo ignora completamente
+                if (tiempoActual - ultimoToque < 400) return; 
+                ultimoToque = tiempoActual;
+
                 moverBotonNo();
             }, { passive: false });
 
-            // Para computadoras mantenemos el paso del mouse por encima
-            btnNo.addEventListener('mouseover', () => {
-                moverBotonNo();
-            });
-            
-            // Si por alguna razón en PC logran hacer click directo
-            btnNo.addEventListener('click', (e) => {
-                e.preventDefault();
-                moverBotonNo();
-            });
-        }
-
-        function moverBotonNo() {
-            const btnNo = document.getElementById('btn-no');
-            const btnSi = document.getElementById('btn-si');
-            const wrapper = document.querySelector('.buttons-wrapper');
-
-            intentosNo++;
-
-            if (intentosNo >= 5) {
-                btnSi.innerText = textosSi[3];
-                btnNo.style.display = 'none';
-                scaleSi += 0.25;
-                btnSi.style.transform = `scale(${scaleSi})`;
-                return;
-            }
-
-            if (intentosNo <= textosSi.length) {
-                btnSi.innerText = textosSi[intentosNo - 1];
-            }
-
-            if (!haCambiadoAPosicionAbsoluta) {
-                btnNo.style.position = 'absolute';
-                haCambiadoAPosicionAbsoluta = true;
-            }
-
-            const maxX = wrapper.clientWidth - btnNo.clientWidth;
-            const maxY = wrapper.clientHeight - btnNo.clientHeight;
-
-            const randomX = Math.floor(Math.random() * maxX);
-            const randomY = Math.floor(Math.random() * (maxY - (-20))) + (-20); 
-
-            btnNo.style.left = randomX + 'px';
-            btnNo.style.top = randomY + 'px';
-
-            scaleSi += 0.25;
-            btnSi.style.transform = `scale(${scaleSi})`;
-        }
-
-        function aceptar() {
-            alert("yeiiii, muak");
-        }
-    </script>
-</body>
-</html>
+            // Para computadoras (paso del mouse por arriba)
+            btnNo.addEventListener('mouseover', () =>
